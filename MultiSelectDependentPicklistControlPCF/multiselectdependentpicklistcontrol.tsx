@@ -191,24 +191,22 @@ function MultiSelectDependentPicklistControl(props:any) {
     const columnsPicklist2: IColumn[] =  [ { key: 'Subcategory', name: 'Subcategory', fieldName: 'label', minWidth: 100, maxWidth: 200, isResizable: true },];
     const dispatch = useDispatch(); //Init Dispatch
 
-    useEffect(() => {
-        if(DATA_SOURCE=="TEST") {
-            //Init test data
-            let picklistData:Array<IPicklistItem> = [{"label":"TTZ34223", "value":"346433"},{"label":"TTZ435342", "value":"43535"},{"label":"TTZ234522", "value":"34534124"},{"label":"TTZ2342522", "value":"345334124"},{"label":"TTZ2345522", "value":"345374124"}];
-            setPicklist2items({"data":picklistData});
-            setPicklist2itemsFiltered({"data":picklistData});
-            dispatch({ type: "CUSTOMDATA/SETDATA_ORIGINAL", data1: picklistData });
-        }
-        else {
-            //Load data from crm
-        }
-    }, []);
+    if(picklist2items.data.length==0) {
+      if(DATA_SOURCE=="TEST") {
+          //Init test data
+          let picklistData:Array<IPicklistItem> = [{"label":"TTZ34223", "value":"346433"},{"label":"TTZ435342", "value":"43535"},{"label":"TTZ234522", "value":"34534124"},{"label":"TTZ2342522", "value":"345334124"},{"label":"TTZ2345522", "value":"345374124"}];
+          setPicklist2items({"data":picklistData});
+          setPicklist2itemsFiltered({"data":picklistData});
+          dispatch({ type: "CUSTOMDATA/SETDATA_ORIGINAL", data1: picklistData });
+          dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: picklistData });
+      }
+      else {
+          //Load data from crm
+      }
+    }
 
     let storedata = useSelector((data: IStoreData) => data);
-    let cdata1Original = storedata.dataOriginal;
-    let cdata1Filtered = storedata.dataFiltered;
-    let statepicklistdata = picklist2items.data;
-    
+
     //---------
     //Functions
     //---------
@@ -273,15 +271,8 @@ function MultiSelectDependentPicklistControl(props:any) {
     };          
 
     const handleSetSelectedRows = (functionarguments:any) => {
-           
-      //TODO: fix invalid hook call from this function
         
-
-        let origdata = cdata1Original;
-        let args = functionarguments;
-        let datatemp = statepicklistdata;
-        let datatemp2 = picklist2items.data;
-        debugger;
+        let cdata1Original = storedata.dataOriginal;
 
         let picklist2ShowValues:Array<number> = new Array<number>();
         selectionPicklist1.getSelection().forEach((selectedItem:any) => {
@@ -304,8 +295,6 @@ function MultiSelectDependentPicklistControl(props:any) {
 
             });
 
-            debugger;
-
             if(newFilteredValues.length>0) {
               setPicklist2itemsFiltered({"data":newFilteredValues});
               dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: newFilteredValues });
@@ -327,7 +316,7 @@ function MultiSelectDependentPicklistControl(props:any) {
         handleSetSelectedRows(arguments);
       },
     });
-    
+
     //-------
     //Styles
     //-------
@@ -354,16 +343,11 @@ function MultiSelectDependentPicklistControl(props:any) {
         }
     };    
 
-    const onclickp1 = () => {
-      let args = arguments;
-      debugger;
-    }
-
     return (
        <div>
         <ThemeProvider>
            <DetailsList styles={getStylesLeftPicklist} setKey="picklist1Set" items={itemsPicklist1} columns={columnsPicklist1} selection={selectionPicklist1} onRenderItemColumn={onRenderItemColumnPicklist1} />
-           <DetailsList styles={getStylesRightPicklist} setKey="picklist2Set" items={cdata1Filtered} columns={columnsPicklist2} onRenderItemColumn={onRenderItemColumnPicklist2} />
+           <DetailsList styles={getStylesRightPicklist} setKey="picklist2Set" items={storedata.dataFiltered} columns={columnsPicklist2} onRenderItemColumn={onRenderItemColumnPicklist2} />
         </ThemeProvider>
 
 
