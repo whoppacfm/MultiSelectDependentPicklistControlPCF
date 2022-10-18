@@ -68,6 +68,51 @@ const options: IComboBoxOption[] = [
   const buttonStyles: Partial<IButtonStyles> = { root: { display: 'block', margin: '10px 0 20px' } };
 */
 
+
+
+
+//-------------------------
+//Redux
+//-------------------------
+interface IStoreData {
+  dataOriginal: Array<any>,
+  dataFiltered: Array<any>
+}
+
+const initialStoreData:IStoreData = {
+  dataOriginal: [],
+  dataFiltered: []
+}
+
+function reducerCustomData(data:IStoreData = initialStoreData, action:AnyAction) {
+  switch (action.type) {
+      case "CUSTOMDATA/SETDATA_FILTERED":
+          return {
+            ...data,
+            dataFiltered: action.data1
+          }
+      case "CUSTOMDATA/SETDATA_ORIGINAL":
+        return {
+          ...data,
+          dataOriginal: action.data1
+        }          
+      default:
+      return data;
+  }
+}
+
+//const reduxStore = createStore(reducerCustomData as any);
+const reduxStore = configureStore({ reducer: reducerCustomData });
+
+//Save data to store
+//dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: data });
+//dispatch({ type: "CUSTOMDATA/SETDATA_ORIGINAL", data1: data });
+
+//Get data from store
+//let data = useSelector((data: IStoreData) => data);
+//let cdata1 = data.dataOriginal;
+//let cdata1 = data.dataFiltered;
+
 function MultiSelectDependentPicklistControl(props:any) {
 
     //-------------------------
@@ -118,7 +163,6 @@ function MultiSelectDependentPicklistControl(props:any) {
     let currentEntityTypeName = (props.context.mode as any).contextInfo.entityTypeName;
     let currentEntityRecordName = (props.context.mode as any).contextInfo.entityRecordName;
 
-
     //--------------
     //Get PCF Config
     //--------------
@@ -138,14 +182,14 @@ function MultiSelectDependentPicklistControl(props:any) {
     else {
       mapping_config = JSON.parse(props.context.parameters?.mapping_config_property?.raw);
     }
-
-
+   
     //---------------------
     //Init data / load data
     //---------------------
     const itemsPicklist1: IPicklistItem[] = [{"label":"ABT543564", "value":"43534534"},{"label":"ABT23334", "value":"434534"},{"label":"ABT33423435", "value":"4534534"},{"label":"ABT334233435", "value":"453234534"},{"label":"ABT334523435", "value":"45345324"}];
     const columnsPicklist1: IColumn[] =  [ { key: 'Category', name: 'Category', fieldName: 'label', minWidth: 100, maxWidth: 200, isResizable: true },];
     const columnsPicklist2: IColumn[] =  [ { key: 'Subcategory', name: 'Subcategory', fieldName: 'label', minWidth: 100, maxWidth: 200, isResizable: true },];
+    const dispatch = useDispatch(); //Init Dispatch
 
     useEffect(() => {
         if(DATA_SOURCE=="TEST") {
@@ -153,17 +197,21 @@ function MultiSelectDependentPicklistControl(props:any) {
             let picklistData:Array<IPicklistItem> = [{"label":"TTZ34223", "value":"346433"},{"label":"TTZ435342", "value":"43535"},{"label":"TTZ234522", "value":"34534124"},{"label":"TTZ2342522", "value":"345334124"},{"label":"TTZ2345522", "value":"345374124"}];
             setPicklist2items({"data":picklistData});
             setPicklist2itemsFiltered({"data":picklistData});
+            dispatch({ type: "CUSTOMDATA/SETDATA_ORIGINAL", data1: picklistData });
         }
         else {
             //Load data from crm
         }
     }, []);
 
-
+    let storedata = useSelector((data: IStoreData) => data);
+    let cdata1Original = storedata.dataOriginal;
+    let cdata1Filtered = storedata.dataFiltered;
+    let statepicklistdata = picklist2items.data;
+    
     //---------
     //Functions
     //---------
-
     const onRenderCompactCard = (item: IPicklistItem): JSX.Element => {
       return (
         <div className={classNames.compactCard}>
@@ -224,8 +272,16 @@ function MultiSelectDependentPicklistControl(props:any) {
       return item[column.key as keyof any];
     };          
 
-    const selectionPicklist1 = new Selection({
-      onSelectionChanged: () => {
+    const handleSetSelectedRows = (functionarguments:any) => {
+           
+      //TODO: fix invalid hook call from this function
+        
+
+        let origdata = cdata1Original;
+        let args = functionarguments;
+        let datatemp = statepicklistdata;
+        let datatemp2 = picklist2items.data;
+        debugger;
 
         let picklist2ShowValues:Array<number> = new Array<number>();
         selectionPicklist1.getSelection().forEach((selectedItem:any) => {
@@ -235,9 +291,10 @@ function MultiSelectDependentPicklistControl(props:any) {
               picklist2ShowValues = picklist2ShowValues.concat(mappingItem.field2values);
             }
           });
-
+          
           if(picklist2ShowValues.length>0) {
-            let newFilteredValues = picklist2items.data.filter((item:IPicklistItem) => {
+            //let newFilteredValues = picklist2items.data.filter((item:IPicklistItem) => {
+            let newFilteredValues = cdata1Original.filter((item:IPicklistItem) => {
 
               if(picklist2ShowValues.indexOf(parseInt(item.value))>-1) {
                 return true;
@@ -249,17 +306,28 @@ function MultiSelectDependentPicklistControl(props:any) {
 
             debugger;
 
-            setPicklist2itemsFiltered({"data":newFilteredValues});
+            if(newFilteredValues.length>0) {
+              setPicklist2itemsFiltered({"data":newFilteredValues});
+              dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: newFilteredValues });
+            }
+            else {
+              setPicklist2itemsFiltered({"data":picklist2items.data});
+              dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: picklist2items.data });
+            }
           }
           else {
             setPicklist2itemsFiltered({"data":picklist2items.data});
+            dispatch({ type: "CUSTOMDATA/SETDATA_FILTERED", data1: picklist2items.data });
           }
-          
         });
+    };
+
+    const selectionPicklist1 = new Selection({
+      onSelectionChanged: () => {
+        handleSetSelectedRows(arguments);
       },
     });
-
-
+    
     //-------
     //Styles
     //-------
@@ -286,12 +354,16 @@ function MultiSelectDependentPicklistControl(props:any) {
         }
     };    
 
+    const onclickp1 = () => {
+      let args = arguments;
+      debugger;
+    }
 
     return (
        <div>
         <ThemeProvider>
            <DetailsList styles={getStylesLeftPicklist} setKey="picklist1Set" items={itemsPicklist1} columns={columnsPicklist1} selection={selectionPicklist1} onRenderItemColumn={onRenderItemColumnPicklist1} />
-           <DetailsList styles={getStylesRightPicklist} setKey="picklist2Set" items={picklist2itemsFiltered.data} columns={columnsPicklist2} onRenderItemColumn={onRenderItemColumnPicklist2} />
+           <DetailsList styles={getStylesRightPicklist} setKey="picklist2Set" items={cdata1Filtered} columns={columnsPicklist2} onRenderItemColumn={onRenderItemColumnPicklist2} />
         </ThemeProvider>
 
 
@@ -327,7 +399,9 @@ function MultiSelectDependentPicklistControl(props:any) {
 
 export function Render(context:any, container:any, theobj:object) {
     ReactDOM.render(
-      <div><MultiSelectDependentPicklistControl context={context} theobj={theobj} /></div>
+      <Provider store={reduxStore}>
+        <div><MultiSelectDependentPicklistControl context={context} theobj={theobj} /></div>
+      </Provider>
       , container
     );
 }
